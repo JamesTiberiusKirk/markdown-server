@@ -13,6 +13,9 @@ import (
 	"strings"
 
 	"github.com/yuin/goldmark"
+	"github.com/yuin/goldmark/extension"
+	"github.com/yuin/goldmark/parser"
+	"github.com/yuin/goldmark/renderer/html"
 )
 
 const (
@@ -25,8 +28,21 @@ const (
 		<title>{{ .Title }}</title>
 		<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.slate.min.css">
 		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css">
+		<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-		<script>hljs.highlightAll();</script>
+		<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+		<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+		<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+		<script>
+			hljs.highlightAll();
+			mermaid.initialize({ startOnLoad: true });
+			document.addEventListener("DOMContentLoaded", () => renderMathInElement(document.body, {
+				delimiters: [
+					{left: "$$", right: "$$", display: true},
+					{left: "$", right: "$", display: false},
+				]
+			}));
+		</script>
 	</head>
 	<body>
 		<main class="container">
@@ -128,7 +144,21 @@ func renderMarkdownFile(w http.ResponseWriter, baseDir string, filePath string, 
 	}
 
 	var buf strings.Builder
-	if err := goldmark.Convert(mdContent, &buf); err != nil {
+	md := goldmark.New(
+		goldmark.WithExtensions(
+			extension.GFM,
+			extension.Footnote,
+			extension.DefinitionList,
+			extension.Typographer,
+		),
+		goldmark.WithParserOptions(
+			parser.WithAutoHeadingID(),
+		),
+		goldmark.WithRendererOptions(
+			html.WithUnsafe(),
+		),
+	)
+	if err := md.Convert(mdContent, &buf); err != nil {
 		log.Printf("Error converting markdown: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return

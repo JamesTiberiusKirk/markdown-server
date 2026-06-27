@@ -1,4 +1,4 @@
-module markdown-server
+module github.com/JamesTiberiusKirk/markdown-server
 
 go 1.21.6
 
